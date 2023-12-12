@@ -1,0 +1,19 @@
+<!-- <p>map-visualisation works!</p> -->
+<!-- map.component.html -->
+
+<!-- <div #map class="map" (click)="handleMapClick($event)"></div>
+<div id="popup" class="ol-popup">
+  <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+  <div id="popup-content"></div>
+</div> -->
+
+<div #map class="map" (click)="handleMapClick($event)"></div>
+<div id="popup" class="ol-popup">
+  <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+  <div id="popup-content" class="popup-content">
+    <!-- Add a close button and increase the size of the popup content -->
+    <button (click)="closePopup()">Close</button>
+    <!-- Display the retrieved address here -->
+    <div id="address-content"></div>
+  </div>
+</div>
