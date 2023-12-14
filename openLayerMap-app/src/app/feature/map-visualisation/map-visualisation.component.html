@@ -1,15 +1,24 @@
 
+<!-- Map initialisation -->
 <div #map class="map" (click)="handleMapClick($event)"></div>
+
+<!-- Required Buttons and file input for geojson -->
 <div class="button-container">
-  <button class="toggle-button" (click)="toggleWMSLayer()">Toggle WMS Layer</button>
+  <button class="toggle-button" [style.display]="wmsLayerVisible ? 'block' : 'none'" (click)="toggleWMSLayer()">Toggle WMS Layer Off</button>
+  <button class="toggle-button" [style.display]="!wmsLayerVisible ? 'block' : 'none'" (click)="toggleWMSLayer()">Toggle WMS Layer On</button>  
   <input type="file" id="file-input" class="browse-button" (change)="onFileInputChange($event)" accept=".json" />
 </div>
 
 
 <div id="popup" class="ol-popup">
-  <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+  <button id="popup-closer" class="ol-popup-closer" (click)="closePopup()"></button>
   <div id="popup-content" class="popup-content">
     <button (click)="closePopup()">Close</button>
     <div id="address-content"></div>
   </div>
+</div>
+
+<!-- Add an error message element -->
+<div *ngIf="showError" class="error-message">
+  {{ errorMessage }}
 </div>

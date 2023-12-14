@@ -23,10 +23,9 @@ import { Geometry } from 'ol/geom';
 })
 export class MapVisualisationComponent implements OnInit {
   @ViewChild('map', { static: true }) mapElement!: ElementRef;
-  private map!: Map;
-  private popup!: Overlay;
-  // private geoJsonLayer: VectorLayer;
-  private geoJsonSource!: VectorSource;
+  map!: Map;
+  popup!: Overlay;
+  geoJsonSource!: VectorSource;
 
   lat: any;
   lng: any;
@@ -35,16 +34,19 @@ export class MapVisualisationComponent implements OnInit {
   vectorLayer!: VectorLayer<VectorSource<Feature<Geometry>>>;
   wmsLayerVisible: boolean = false;
   wmsLayerGroup!: LayerGroup;
-  initialCoordinate=[7.083979689042522, 50.73784467220557];// Eifel Str. 20, Bonn, 53119, Germany
+
+  initialCoordinate: any; // Eifel Str. 20, Bonn, 53119, Germany
+  initialView: any;
+  showError: boolean = false;
+  errorMessage: string='An error occured';
 
   constructor(private reverseGeocodeService: ReverseGeocodeService) {}
 
   ngOnInit(): void {
     this.initMap();
-    this.initPopup();
   }
 
-  private initMap(): void {
+  initMap(): void {
     const osmLayer = new TileLayer({
       source: new OSM(),
     });
@@ -72,8 +74,9 @@ export class MapVisualisationComponent implements OnInit {
           source: new TileWMS({
             url: 'https://sedac.ciesin.columbia.edu/geoserver/wms',
             params: {
-              'LAYERS': 'epi:epi-environmental-performance-index-2020_eco-agriculture',
-              'TILED': true,
+              LAYERS:
+                'epi:epi-environmental-performance-index-2020_eco-agriculture',
+              TILED: true,
             },
             serverType: 'geoserver',
             transition: 0,
@@ -81,20 +84,32 @@ export class MapVisualisationComponent implements OnInit {
         }),
       ],
     });
-    
-    this.map = new Map({
-      target: this.mapElement.nativeElement,
-      layers: [osmLayer, geoJsonLayer, this.vectorLayer,this.wmsLayerGroup],
-      view: new View({
-        center: fromLonLat(this.initialCoordinate), 
+    this.getGeocode(
+      'ForestFinest Consulting GmbH, Eifelstraße 20, 53119 Bonn, Germany'
+    ).subscribe((data) => {
+      console.log('Geocoded Data', data);
+      this.initialCoordinate = [data.lng, data.lat];
+      this.initialView = {
+        center: fromLonLat(this.initialCoordinate),
         zoom: 20,
         projection: 'EPSG:3857',
-      }),
+        // Add any other initial view parameters as needed
+      };
+      this.map = new Map({
+        target: this.mapElement.nativeElement,
+        layers: [osmLayer, geoJsonLayer, this.vectorLayer, this.wmsLayerGroup],
+        view: new View({
+          center: fromLonLat(this.initialCoordinate),
+          zoom: this.initialView.zoom,
+          projection: this.initialView.projection,
+        }),
+      });
+      this.addMarker(this.initialCoordinate);
+      this.initPopup();
     });
-    this.addMarker(this.initialCoordinate);
   }
 
-  private addMarker(coordinates: number[]): void {
+  addMarker(coordinates: number[]): void {
     const markerImageSrc = 'assets/marker.png';
     const marker = new Feature({
       geometry: new Point(fromLonLat(coordinates)),
@@ -123,7 +138,7 @@ export class MapVisualisationComponent implements OnInit {
     console.log(this.map.getAllLayers());
   }
 
-  private initPopup(): void {
+  initPopup(): void {
     this.popup = new Overlay({
       element: document.getElementById('popup') as HTMLElement,
       autoPan: true,
@@ -141,21 +156,33 @@ export class MapVisualisationComponent implements OnInit {
 
   handleMapClick(event: any): void {
     this.map.on('singleclick', (evt) => {
-      const coordinate = evt.coordinate;
-      console.log('Coordinate', coordinate);
-      const hdms = toStringHDMS(toLonLat(coordinate));
-
-      this.getReverseGeocode(coordinate).subscribe(
+      console.log('Coordinate', evt.coordinate);
+      this.getReverseGeocode(evt.coordinate).subscribe(
         (address) => {
           console.log('Address!', address);
           // Display the popup with the retrieved information
-          this.popup.setPosition(coordinate);
+          this.popup.setPosition(evt.coordinate);
           document.getElementById('popup-content')!.innerHTML = address;
         },
         (error) => {
-          console.error('Error:', error);
+          console.error('Reverse Geocode Error:', error);
+
+          // displaying an error message in the popup
+          this.popup.setPosition(evt.coordinate);
+          document.getElementById('popup-content')!.innerHTML =
+            'Error retrieving address';
         }
       );
+
+      document.addEventListener('click', (event) => {
+        const mapElement = this.map.getTargetElement();
+        if (
+          event.target !== mapElement &&
+          !mapElement.contains(event.target as Node)
+        ) {
+          this.popup.setPosition(undefined);
+        }
+      });
     });
   }
 
@@ -164,18 +191,18 @@ export class MapVisualisationComponent implements OnInit {
     this.popup.setPosition(undefined);
   }
 
-  private getReverseGeocode(coordinate: number[]): Observable<string> {
+  getReverseGeocode(coordinate: number[]): Observable<string> {
     // Replace this with your actual reverse geocoding logic or API call
     return this.reverseGeocodeService.reverseGeocode(coordinate).pipe(
       map((data) => data.results[0].formatted),
       catchError((error) => {
         console.error('Error:', error);
-        return of('Error retrieving address'); // Return a default value or handle the error accordingly
+        return of('Error retrieving address'); // Return a default value or handle the error
       })
     );
   }
 
-  private createStyleFunction(): Style {
+  createStyleFunction(): Style {
     return new Style({
       fill: new Fill({
         color: 'rgba(255, 0, 0, 0.2)',
@@ -187,15 +214,21 @@ export class MapVisualisationComponent implements OnInit {
     });
   }
 
-  private loadGeoJsonData(data: any): void {
+  loadGeoJsonData(data: any): void {
     try {
       console.log('Received GeoJSON data:', data);
 
       // Create a GeoJSON format object
       const geoJsonFormat = new GeoJSON();
 
-      // Read features from GeoJSON data
-      const features = geoJsonFormat.readFeatures(data) as Feature<Geometry>[];
+      // Specify the projection of your GeoJSON data (if it's different from EPSG:4326)
+      const options = { featureProjection: 'EPSG:3857' };
+
+      // Read features from GeoJSON data with the specified options
+      const features = geoJsonFormat.readFeatures(
+        data,
+        options
+      ) as Feature<Geometry>[];
 
       console.log('Parsed GeoJSON features:', features);
 
@@ -206,16 +239,22 @@ export class MapVisualisationComponent implements OnInit {
       // Zoom to the extent of the features
       this.map.getView().fit(this.geoJsonSource.getExtent(), {
         padding: [10, 10, 10, 10],
-        maxZoom: 15, // Adjust the maximum zoom level as needed
+        maxZoom: 15,
       });
 
       this.vectorLayer.changed(); // Trigger a layer update
     } catch (error) {
       console.error('Error loading GeoJSON data:', error);
+      
+      // Update the UI or show a notification with the error message
+      // For example, you can set a variable to display an error message in the template
+      this.showError = true;
+      this.errorMessage = 'Error loading GeoJSON data. Please try again.';
     }
   }
 
   onFileInputChange(event: any): void {
+    this.showError = false;
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -230,17 +269,6 @@ export class MapVisualisationComponent implements OnInit {
       reader.readAsText(file);
     }
   }
-  // private getGeocode(address: string) {
-  //   // this.reverseGeocodeService.geocode(address).subscribe(
-  //   //   (data)=>{console.log("Data",data.results[0].geometry)})
-  //   return this.reverseGeocodeService.geocode(address).pipe(
-  //     map((data) => data.results[0].geometry),
-  //     catchError((error) => {
-  //       console.error('Error:', error);
-  //       return of('Error retrieving address'); // Return a default value or handle the error accordingly
-  //     })
-  //   );
-  // }
 
   // Function to toggle the visibility of the WMS layer
   toggleWMSLayer(): void {
@@ -250,5 +278,35 @@ export class MapVisualisationComponent implements OnInit {
         layer.setVisible(this.wmsLayerVisible);
       }
     });
+    this.zoomOutWmsLayer(this.wmsLayerVisible);
+  }
+
+  zoomOutWmsLayer(wmsLayerVisible: boolean): void {
+    // Get the view of the map
+    const view = this.map.getView();
+
+    // If the WMS layer is now visible, zoom out the map
+    if (wmsLayerVisible) {
+      const minZoom = view.getMinZoom();
+      view.animate({
+        zoom: minZoom,
+      });
+    } else {
+      view.animate({
+        center: this.initialView.center,
+        zoom: this.initialView.zoom,
+      });
+    }
+  }
+
+  // function to get geocode from the location used for initial location
+  getGeocode(address: string) {
+    return this.reverseGeocodeService.geocode(address).pipe(
+      map((data) => data.results[0].geometry),
+      catchError((error) => {
+        console.error('Error:', error);
+        return of('Error retrieving address'); // Return a default value or handle the error
+      })
+    );
   }
 }

@@ -60,6 +60,7 @@ input[type="file"] {
   width: 0;
   position: absolute;
   pointer-events: none;
+
 }
 
 /* Adjust the size of the arrow */
@@ -90,9 +91,15 @@ input[type="file"] {
   position: absolute;
   top: 5px;
   right: 5px;
-  padding: 5px;
   cursor: pointer;
-  font-size: 18px;
   color: #333;
   line-height: 1;
+  border: none;
+  text-decoration: none; 
+  outline: none; 
+}
+
+/* Define the cross (×) as content */
+.ol-popup-closer::before {
+  content: "×";
 }
