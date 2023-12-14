@@ -1,13 +1,42 @@
-/* map.component.css */
-
+/* Adjust the map container size to 80vh */
 .map {
   width: 100%;
-  height: 100vh;
+  height: 90vh;
 }
-/* map.component.css */
 
-/* ... (your existing styles) */
+/* Add some styling to the file input */
+input[type="file"] {
+  display: block;
+  margin-top: 10px;
+}
 
+/* Container for buttons, horizontally aligned */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Style the Toggle WMS Layer button with blue color */
+.toggle-button {
+
+  padding: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+}
+
+/* Style the file input button with blue color */
+.browse-button {
+  padding: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+
+/* Styling for the popup */
 .ol-popup {
   position: absolute;
   background-color: white;
@@ -21,6 +50,7 @@
   width: 300px;
 }
 
+/* Arrow styling for the popup */
 .ol-popup:after,
 .ol-popup:before {
   top: 100%;
@@ -30,8 +60,10 @@
   width: 0;
   position: absolute;
   pointer-events: none;
+
 }
 
+/* Adjust the size of the arrow */
 .ol-popup:after {
   border-top-color: white;
   border-width: 10px;
@@ -48,21 +80,26 @@
   margin-left: -11px;
 }
 
-
-
+/* Increase the size of the popup content */
 .popup-content {
-  /* Increase the size of the popup content */
   width: 100%;
   height: 100%;
 }
 
+/* Styling for the popup closer (close button) */
 .ol-popup-closer {
   position: absolute;
   top: 5px;
   right: 5px;
-  padding: 5px;
   cursor: pointer;
-  font-size: 18px;
   color: #333;
-  line-height: 1; /* Add this line to vertically center the icon */
+  line-height: 1;
+  border: none;
+  text-decoration: none; 
+  outline: none; 
+}
+
+/* Define the cross (×) as content */
+.ol-popup-closer::before {
+  content: "×";
 }

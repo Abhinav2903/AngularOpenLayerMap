@@ -14,9 +14,9 @@ import { ReverseGeocodeService } from './service/reverse-geocode.service';
   imports: [
     BrowserModule,
     AppRoutingModule,
-    HttpClientModule
+    HttpClientModule,
   ],
-  providers: [ReverseGeocodeService],
+  providers: [ReverseGeocodeService,HttpClient],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
